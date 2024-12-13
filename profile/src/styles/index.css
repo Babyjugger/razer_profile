@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,body,#main {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box
+}
+
+:root {
+  background-color: grey;
+  -webkit-font-smoothing: antialiased
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: inherit
+}
