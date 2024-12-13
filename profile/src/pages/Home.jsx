@@ -8,7 +8,7 @@ function Home () {
         <div className={'container mx-auto'} style={{display: 'contents'}}>
             <div className="flex flex-row flex_responsive">
                 <LeftNav />
-                <RightPanel />
+                <RightPanel title="Default"/>
             </div>
         </div>
     );
