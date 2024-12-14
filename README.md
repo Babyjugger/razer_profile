@@ -12,3 +12,6 @@ https://drive.google.com/file/d/12VSkTrd7ScwxVP2FbSltD_u8CQL3xBgL/view?usp=shari
 
 # Git Repo
 https://github.com/Babyjugger/razer_profile
+
+# Personal Website
+https://kumapystudio.com
