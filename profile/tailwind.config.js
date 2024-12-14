@@ -3,6 +3,12 @@ export default {
   content: ["./index.html", "./src/**/*.{jsx, js}"],
   theme: {
     extend: {
+      fontFamily: {
+        'razerf5': ['RazerF5', 'sans-serif']
+      },
+      colors:{
+        'main-color': '#44d62c',
+      },
       spacing: {
         '300': '300px',
         '340': '340px',
@@ -24,6 +30,9 @@ export default {
   daisyui: {
     themes: [
     {
+      fontFamily: {
+        sans: ['Roboto',]
+      },
       saasstartertheme: {
         primary: "#180042",
         "primary-content": "#fefbf6",

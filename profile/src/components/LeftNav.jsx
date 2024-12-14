@@ -9,10 +9,44 @@ import DownIcon from  "../assets/images/icon_arrow_down.svg";
 import DeleteIcon from  "../assets/images/icon_delete.svg";
 import EditIcon from  "../assets/images/icon_edit.svg";
 import AddIcon from  "../assets/images/icon_plus.svg";
+import error from "eslint-plugin-react/lib/util/error.js";
 
-const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
+const dummyAPI = (items) => {
+    return fetch('http://validate.jsontest.com?json=', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({items}),
+    })
+        .then((response) => response.json())
+        .then((data) => console.log("API res:", data))
+        .catch((error) => console.error('Error saving items: ', error));
+};
+
+
+
+const MoveButton = ({ items, setItems, selectedID, setSelectedID, timerTimeout, setTimerTimeout}) => {
 
     const index = items.findIndex((item) => item.id === selectedID);
+    const [showAlert, setShowAlert] = useState(false);
+
+    const triggerAutoSave = (localItems) => {
+        if (timerTimeout) {
+            clearTimeout(timerTimeout);
+        }
+
+        const timer = setTimeout(() => {
+            dummyAPI(localItems);
+        }, 3000);
+
+        setTimerTimeout(timer);
+    }
+
+    const handleItemModification = (localItems) => {
+        setItems(localItems);
+        triggerAutoSave(localItems);
+    }
 
     const moveItem = (direction) => {
         if (index === -1) {
@@ -26,25 +60,27 @@ const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
         else if  (direction === "down" && index < newItems.length - 1) {
             [newItems[index +1], newItems[index]] = [newItems[index], newItems[index + 1]];
         }
-        setItems(newItems);
+        handleItemModification(newItems);
 
     };
 
     const deleteItem = () => {
         if (index === -1) {
             return;
-        };
+        }
+
         const newItems = items.filter((_, remaining_index) => remaining_index !== index);
-        setItems(newItems);
+        handleItemModification(newItems);
 
         if (index !== 0) {
-            setSelectedID(newItems[index-1].id);
+            setSelectedID(newItems[index - 1].id);
             document.querySelector('h1[name="selected_title"]').textContent = newItems[index-1].text;
         }
         else{
             setSelectedID(newItems[0].id);
             document.querySelector('h1[name="selected_title"]').textContent = newItems[0].text;
         }
+        setShowAlert(false);
     }
 
     const  editItem = () => {
@@ -54,7 +90,7 @@ const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
 
         const newItems = [...items];
         newItems[index].isEditing = true;
-        setItems(newItems);
+        handleItemModification(newItems);
         setSelectedID(items[index].id);
     }
 
@@ -70,7 +106,7 @@ const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
 
         const newID = id  + 1
         const newItems = [...items, {id: newID, text: newText, historytext: newText, icon: CustomIcon, default_profile: false, isEditing: false}]
-        setItems(newItems);
+        handleItemModification(newItems);
         setSelectedID(newID);
         document.querySelector('h1[name="selected_title"]').textContent = newItems[items.length].text;
     }
@@ -85,14 +121,27 @@ const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
             <button onClick={() => moveItem('down')} disabled={index === items.length - 1}>
                 <img src={DownIcon} className="h-5 w-5" style={{opacity: index === items.length - 1 ? '10%' : '100%'}}/>
             </button>
-            <button onClick={() => deleteItem()} disabled={items[index].default === true}>
+
+            <button onClick={() => setShowAlert(true)} disabled={items[index].default === true}>
                 <img src={DeleteIcon} className="h-5 w-5" style={{visibility: items[index].default === true ? 'hidden' : 'visible'}}/>
             </button>
+
+            {showAlert && (
+                <div role="alert" className="alert">
+                    <span>Deleting this item {items[index].text}?</span>
+                    <div>
+                        <button onClick={() => setShowAlert(false)} className="btn btn-sm">Deny</button>
+                        <button onClick={() => deleteItem()} className="btn btn-sm btn-primary" disabled={items[index].default === true}>Accept</button>
+                    </div>
+                </div>
+            )}
+
+
             <button onClick={() => editItem()} disabled={items[index].default === true}>
                 <img src={EditIcon} className="h-5 w-5" style={{visibility: items[index].default === true ? 'hidden' : 'visible'}}/>
             </button>
             <button onClick={() => addItem()}>
-                <img src={AddIcon} className="h-5 w-5" />
+            <img src={AddIcon} className="h-5 w-5"/>
             </button>
 
 
@@ -100,12 +149,26 @@ const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
     )
 };
 
-
 const LeftNav = () => {
-    const [selectedText, setSelectedText] = useState('Default');
     const [selectedID, setSelectedID] = useState(0);
-    const [editingID, setEditingID] = useState(null);
+    const [timerTimeout, setTimerTimeout] = useState(null);
 
+    const triggerAutoSave = (localItems) => {
+        if (timerTimeout) {
+            clearTimeout(timerTimeout);
+        }
+
+        const timer = setTimeout(() => {
+            dummyAPI(localItems);
+        }, 3000);
+
+        setTimerTimeout(timer);
+    }
+
+    const handleItemModification = (localItems) => {
+        setItems(localItems);
+        triggerAutoSave(localItems);
+    }
 
     const [items, setItems] = useState(() => {
         const localItems = localStorage.getItem('localItems');
@@ -127,13 +190,13 @@ const LeftNav = () => {
     return (
         <div className="flex flex-col  bg-black h-screen p-5 pt-8 w-72 gap-4">
             <div>
-                <h1 className="text-green-500">PROFILE LIST</h1>
+                <h1 className="text-main-color">PROFILE LIST</h1>
             </div>
             <div>
                 <div className="box-border border-solid bordered border-white border-2 text-white p-2">
 
                     {items.map((item, index) => (
-                        <div key={index} style={{color: selectedID === item.id ? '#10B981' : 'white'}}>
+                        <div key={index} style={{color: selectedID === item.id ? '#44d62c' : 'white'}}>
                             <a className="flex flex-row  gap-2 pt-2 cursor-pointer  hover:bg-white hover:bg-opacity-20"
                                onClick={(e) => {
                                    e.preventDefault();
@@ -148,7 +211,7 @@ const LeftNav = () => {
                                                    newItems[index].text = e.target.value;
                                                    newItems[index].text.trim();
                                                    setSelectedID(item.id);
-                                                   setItems(newItems);
+                                                   handleItemModification(newItems);
                                                    document.querySelector('h1[name="selected_title"]').textContent = item.text;
                                                }}
                                                onBlur={(e) => {
@@ -157,7 +220,7 @@ const LeftNav = () => {
                                                     if (newItems[index].text == '' || newItems[index].text == ' '){
                                                         newItems[index].text = item.historytext;
                                                     }
-                                                    setItems(newItems);
+                                                    handleItemModification(newItems);
                                                     newItems[index].isEditing = false;
                                                     newItems[index].historytext = item.text;
                                                     setSelectedID(item.id);
@@ -175,7 +238,7 @@ const LeftNav = () => {
                 </div>
 
                 <div className="box-border border-solid bordered border-white border-2 text-white bg-white bg-opacity-20 p-2">
-                    <MoveButton items={items} setItems={setItems} selectedID={selectedID} setSelectedID={setSelectedID}/>
+                    <MoveButton items={items} setItems={setItems} selectedID={selectedID} setSelectedID={setSelectedID} timerTimeout={timerTimeout} setTimerTimeout={setTimerTimeout} />
                 </div>
             </div>
         </div>
