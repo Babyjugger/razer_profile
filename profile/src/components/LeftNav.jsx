@@ -10,9 +10,9 @@ import DeleteIcon from  "../assets/images/icon_delete.svg";
 import EditIcon from  "../assets/images/icon_edit.svg";
 import AddIcon from  "../assets/images/icon_plus.svg";
 
-const MoveButton = ({ items, setItems, selectedText, setSelectedText}) => {
+const MoveButton = ({ items, setItems, selectedID, setSelectedID}) => {
 
-    const index = items.findIndex((item) => item.text === selectedText);
+    const index = items.findIndex((item) => item.id === selectedID);
 
     const moveItem = (direction) => {
         if (index === -1) {
@@ -37,8 +37,14 @@ const MoveButton = ({ items, setItems, selectedText, setSelectedText}) => {
         const newItems = items.filter((_, remaining_index) => remaining_index !== index);
         setItems(newItems);
 
-        setSelectedText(newItems[0].text);
-        document.querySelector('h1[name="selected_title"]').textContent = newItems[0].text;
+        if (index !== 0) {
+            setSelectedID(newItems[index-1].id);
+            document.querySelector('h1[name="selected_title"]').textContent = newItems[index-1].text;
+        }
+        else{
+            setSelectedID(newItems[0].id);
+            document.querySelector('h1[name="selected_title"]').textContent = newItems[0].text;
+        }
     }
 
     const  editItem = () => {
@@ -48,12 +54,25 @@ const MoveButton = ({ items, setItems, selectedText, setSelectedText}) => {
 
         const newItems = [...items];
         newItems[index].isEditing = true;
-        console.log(newItems);
         setItems(newItems);
+        setSelectedID(items[index].id);
     }
 
     const addItem = () => {
+        const newText = "New Profile";
+        let id = 0;
+        // Set the new item with the highest index
+        items.forEach(function (v, k) {
+            if (id < +v.id) {
+                id = +v.id;
+            }
+        });
 
+        const newID = id  + 1
+        const newItems = [...items, {id: newID, text: newText, historytext: newText, icon: CustomIcon, default_profile: false, isEditing: false}]
+        setItems(newItems);
+        setSelectedID(newID);
+        document.querySelector('h1[name="selected_title"]').textContent = newItems[items.length].text;
     }
 
 
@@ -84,33 +103,25 @@ const MoveButton = ({ items, setItems, selectedText, setSelectedText}) => {
 
 const LeftNav = () => {
     const [selectedText, setSelectedText] = useState('Default');
+    const [selectedID, setSelectedID] = useState(0);
+    const [editingID, setEditingID] = useState(null);
 
-    const [items, setItems] = useState([
-        {text: "Default", icon: DefaultIcon, default: true, isEditing: false},
-        {text: "Game", icon: GameIcon, default: true, isEditing: false},
-        { text: "Movie", icon: MovieIcon, default: true, isEditing: false} ,
-        { text: "Music", icon: MusicIcon, default: true, isEditing: false},
-        { text: "Custom 1", icon: CustomIcon, default: false, isEditing: false} ,
-        { text: "Demo Long Text", icon: CustomIcon, default: false, isEditing: false},
-    ]);
+
+    const [items, setItems] = useState(() => {
+        const localItems = localStorage.getItem('localItems');
+        return localItems ? JSON.parse(localItems) :
+        [
+            { id: 0, text: "Default", historytext: "Default", icon: DefaultIcon, default: true, isEditing: false},
+            { id: 1, text: "Game", historytext: "Game",icon: GameIcon, default: true, isEditing: false},
+            { id: 2, text: "Movie", historytext: "Movie", icon: MovieIcon, default: true, isEditing: false} ,
+            { id: 3, text: "Music", historytext: "Music",icon: MusicIcon, default: true, isEditing: false},
+            { id: 4, text: "Custom 1", historytext: "Custom 1", icon: CustomIcon, default: false, isEditing: false} ,
+            { id: 5, text: "Demo Long Text", historytext: "Demo Long Text", icon: CustomIcon, default: false, isEditing: false},
+        ]
+    });
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            const activeIndex = items.findIndex((item) => item.isEditing);
-            if (activeIndex !== -1) {
-                const inputElement = document.getElementById(`edit-input-${activeIndex}`);
-                if (inputElement && !inputElement.contains(event.target)) {
-                    const newItems = [...items];
-                    newItems[activeIndex].isEditing = false;
-                    setItems(newItems);
-                }
-            }
-        };
-
-        // document.addEventListener('click', handleClickOutside);
-        // return () => {
-        //     document.removeEventListener('click', handleClickOutside)
-        // };
+        localStorage.setItem('localItems', JSON.stringify(items))
     }, [items]);
 
     return (
@@ -122,28 +133,39 @@ const LeftNav = () => {
                 <div className="box-border border-solid bordered border-white border-2 text-white p-2">
 
                     {items.map((item, index) => (
-                        <div key={index} style={{color: selectedText === item.text ? '#10B981' : 'white'}}>
+                        <div key={index} style={{color: selectedID === item.id ? '#10B981' : 'white'}}>
                             <a className="flex flex-row  gap-2 pt-2 cursor-pointer  hover:bg-white hover:bg-opacity-20"
                                onClick={(e) => {
                                    e.preventDefault();
-                                   setSelectedText(item.text);
+                                   setSelectedID(item.id);
                                    document.querySelector('h1[name="selected_title"]').textContent = item.text;
                                }}>
                                 <img src={item.icon} className="h-5 w-5 flex flex-row"/>
                                 {item.isEditing ? (
-                                        <input id={`edit-input-${index}`} type="text" defaultValue={item.text}
+                                        <input id={`edit-input-${index}`} type="text" value={item.text}
+                                               onChange={(e) => {
+                                                   const newItems = [...items];
+                                                   newItems[index].text = e.target.value;
+                                                   newItems[index].text.trim();
+                                                   setSelectedID(item.id);
+                                                   setItems(newItems);
+                                                   document.querySelector('h1[name="selected_title"]').textContent = item.text;
+                                               }}
                                                onBlur={(e) => {
                                                    const newItems = [...items];
                                                    newItems[index].text = e.target.value;
-                                                   newItems[index].isEditing = false;
-                                                   setSelectedText(e.target.value);
-                                                   setItems(newItems);
-                                               }
-                                               } ref={(input) => input && input.focus()}
+                                                    if (newItems[index].text == '' || newItems[index].text == ' '){
+                                                        newItems[index].text = item.historytext;
+                                                    }
+                                                    setItems(newItems);
+                                                    newItems[index].isEditing = false;
+                                                    newItems[index].historytext = item.text;
+                                                    setSelectedID(item.id);
+                                               }}
+                                               autoFocus
                                         />
                                     ) :
                                     (
-
                                         <span>{item.text} </span>
                                     )
                                 }
@@ -153,7 +175,7 @@ const LeftNav = () => {
                 </div>
 
                 <div className="box-border border-solid bordered border-white border-2 text-white bg-white bg-opacity-20 p-2">
-                    <MoveButton items={items} setItems={setItems} selectedText={selectedText} setSelectedText={setSelectedText}/>
+                    <MoveButton items={items} setItems={setItems} selectedID={selectedID} setSelectedID={setSelectedID}/>
                 </div>
             </div>
         </div>
